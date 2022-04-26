@@ -1,50 +1,45 @@
 package com.company;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketTimeoutException;
+import java.net.*;
+import java.util.Scanner;
 
 public class UDPClient {
-    public static void main(String[] args) {
-        if (args.length < 2) {
-            System.out.println("Syntax: QuoteClient <hostname> <port>");
-            return;
-        }
+    private DatagramSocket socket;
+    private InetAddress address;
+    private boolean running;
 
-        String hostname = args[0];
-        int port = Integer.parseInt(args[1]);
+    private byte[] buf;
 
-        try {
-            InetAddress address = InetAddress.getByName(hostname);
-            DatagramSocket socket = new DatagramSocket();
+    public UDPClient() throws SocketException, UnknownHostException {
+        socket = new DatagramSocket();
+        address = InetAddress.getByName("localhost");
+    }
 
-            while (true) {
+    public void run() throws IOException {
+        running = true;
+        Scanner sc= new Scanner(System.in);
+        String name = sc.nextLine();
+        System.out.println(playGame(name));
+    }
 
-                DatagramPacket request = new DatagramPacket(new byte[1], 1, address, port);
-                socket.send(request);
+    public String playGame(String msg) throws IOException {
+        buf = msg.getBytes();
+        DatagramPacket packet = new DatagramPacket(buf, buf.length, address, 4445);
+        socket.send(packet);
+        buf = new byte[256];
+        packet = new DatagramPacket(buf, buf.length);
+        socket.receive(packet);
+        String received = new String(packet.getData(), 0, packet.getLength());
+        return received;
+    }
 
-                byte[] buffer = new byte[512];
-                DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-                socket.receive(response);
+    public void close() {
+        socket.close();
+    }
 
-                String quote = new String(buffer, 0, response.getLength());
-
-                System.out.println(quote);
-                System.out.println();
-
-                Thread.sleep(10000);
-            }
-
-        } catch (SocketTimeoutException ex) {
-            System.out.println("Timeout error: " + ex.getMessage());
-            ex.printStackTrace();
-        } catch (IOException ex) {
-            System.out.println("Client error: " + ex.getMessage());
-            ex.printStackTrace();
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
+    public static void main(String[] args) throws IOException {
+        UDPClient udpClient = new UDPClient();
+        udpClient.run();
     }
 }
